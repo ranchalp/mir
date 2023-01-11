@@ -7,12 +7,16 @@ SPDX-License-Identifier: Apache-2.0
 package types
 
 import (
+	"bytes"
 	"encoding/binary"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
+
+	"golang.org/x/exp/constraints"
 
 	"github.com/filecoin-project/mir/pkg/pb/commonpb"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
@@ -78,6 +82,8 @@ func NodeIDSlice(nids []string) []NodeID {
 	return nodeIDs
 }
 
+const NodeIDSeparator = Separator
+
 // NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
 // This is required for serialization using Protocol Buffers.
 func NodeIDSlicePb(nids []NodeID) []string {
@@ -86,6 +92,35 @@ func NodeIDSlicePb(nids []NodeID) []string {
 		pbSlice[i] = nid.Pb()
 	}
 	return pbSlice
+}
+
+// NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
+// This is required for serialization using Protocol Buffers.
+func NodeIDSliceBytes(nids []NodeID) []byte {
+	byteSlice := make([][]byte, len(nids))
+	for i, nid := range nids {
+		byteSlice[i] = (nid + NodeIDSeparator).Bytes()
+	}
+	return bytes.Join(byteSlice, []byte{})
+}
+
+// NodeIDSlicePb converts a slice of NodeIDs to a slice of the native type underlying NodeID.
+// This is required for serialization using Protocol Buffers.
+func NodeIDSliceFromBytes(nids []byte) []NodeID {
+	// Split the slice of bytes into a slice of slices of bytes using the separator
+	bytesSeparator := []byte(NodeIDSeparator)
+	slices := bytes.Split(nids, bytesSeparator)
+
+	// Create a slice of strings with the same length as the slice of slices of bytes
+	strings := make([]NodeID, 0, len(slices))
+	// Iterate through each slice of bytes and add its string representation to the slice of strings
+	for _, v := range slices {
+		if len(v) != 0 {
+			strings = append(strings, NodeID(string(v)))
+		}
+	}
+
+	return strings
 }
 
 // ================================================================================
@@ -226,7 +261,7 @@ func (sn SeqNr) Pb() uint64 {
 
 // Bytes converts a SeqNr to a slice of bytes (useful for serialization).
 func (sn SeqNr) Bytes() []byte {
-	return uint64ToBytes(uint64(sn))
+	return Uint64ToBytes(uint64(sn))
 }
 
 // SeqNrSlice converts a slice of SeqNrs represented directly as their underlying native type
@@ -261,7 +296,7 @@ func (rn ReqNo) Pb() uint64 {
 
 // Bytes converts a ReqNo to a slice of bytes (useful for serialization).
 func (rn ReqNo) Bytes() []byte {
-	return uint64ToBytes(uint64(rn))
+	return Uint64ToBytes(uint64(rn))
 }
 
 // ================================================================================
@@ -280,7 +315,7 @@ func (ri RetentionIndex) Pb() uint64 {
 
 // Bytes converts a RetentionIndex to a slice of bytes (useful for serialization).
 func (ri RetentionIndex) Bytes() []byte {
-	return uint64ToBytes(uint64(ri))
+	return Uint64ToBytes(uint64(ri))
 }
 
 // ================================================================================
@@ -294,7 +329,7 @@ func (i SBInstanceNr) Pb() uint64 {
 }
 
 func (i SBInstanceNr) Bytes() []byte {
-	return uint64ToBytes(uint64(i))
+	return Uint64ToBytes(uint64(i))
 }
 
 // ================================================================================
@@ -308,7 +343,7 @@ func (e EpochNr) Pb() uint64 {
 }
 
 func (e EpochNr) Bytes() []byte {
-	return uint64ToBytes(uint64(e))
+	return Uint64ToBytes(uint64(e))
 }
 
 // ================================================================================
@@ -322,7 +357,7 @@ func (nr NumRequests) Pb() uint64 {
 }
 
 func (nr NumRequests) Bytes() []byte {
-	return uint64ToBytes(uint64(nr))
+	return Uint64ToBytes(uint64(nr))
 }
 
 // ================================================================================
@@ -337,7 +372,7 @@ func (v PBFTViewNr) Pb() uint64 {
 
 // Bytes converts a PBFTViewNr to a slice of bytes (useful for serialization).
 func (v PBFTViewNr) Bytes() []byte {
-	return uint64ToBytes(uint64(v))
+	return Uint64ToBytes(uint64(v))
 }
 
 // ================================================================================
@@ -351,7 +386,7 @@ func (td TimeDuration) Pb() uint64 {
 }
 
 func (td TimeDuration) Bytes() []byte {
-	return uint64ToBytes(uint64(td))
+	return Uint64ToBytes(uint64(td))
 }
 
 // ================================================================================
@@ -359,8 +394,46 @@ func (td TimeDuration) Bytes() []byte {
 // ================================================================================
 
 // Encode view number.
-func uint64ToBytes(n uint64) []byte {
+func Uint64ToBytes(n uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, n)
 	return buf
+}
+
+func Uint64FromBytes(bytes []byte) uint64 {
+	return binary.LittleEndian.Uint64(bytes)
+}
+
+func OrderedMapToBytes[K constraints.Ordered, V any](m map[K]V, separator byte, f func(k K, v V) []byte) ([]byte, error) {
+	var result []byte
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		// Sort keys to ensure deterministic order
+		return keys[i] < keys[j]
+	})
+	for _, k := range keys {
+		// Append key and value bytes to the result slice
+		result = append(result, f(k, m[k])...)
+	}
+	result = append(result, separator)
+	return result, nil
+}
+
+func BytesToMap[K constraints.Ordered, V any](b []byte, separator byte, f func([]byte, *map[K]V) ([]byte, error, bool)) (map[K]V, error, []byte) {
+	m := make(map[K]V)
+	var end bool
+	var err error
+	if b[0] == separator { //empty map
+		return m, nil, b[1:]
+	}
+
+	for !end && b != nil && len(b) > 0 {
+		if b, err, end = f(b, &m); err != nil {
+			return m, err, b
+		}
+	}
+	return m, nil, b
 }
