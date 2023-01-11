@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"io"
 	"os"
 	"strings"
@@ -153,6 +154,8 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 	// Instantiate an ISS protocol module with the default configuration.
 	// TODO: The initial app state must be involved here. Otherwise checkpoint hashes might not match.
 	issConfig := issutil.DefaultParams(membership)
+	leaderPolicy := issutil.NewBlackListLeaderPolicy(maputil.GetSortedKeys(membership), issutil.StrongQuorum(len(membership)))
+
 	protocol, err := iss.New(
 		id,
 		iss.DefaultModuleConfig(),
@@ -161,6 +164,7 @@ func debuggerNode(id t.NodeID, membership map[t.NodeID]t.NodeAddress) (*mir.Node
 		crypto.SHA256,
 		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),
+		leaderPolicy,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not instantiate protocol module: %w", err)

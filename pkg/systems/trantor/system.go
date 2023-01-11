@@ -2,6 +2,8 @@ package trantor
 
 import (
 	"crypto"
+	"github.com/filecoin-project/mir/pkg/util/issutil"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 
 	"github.com/pkg/errors"
 
@@ -130,6 +132,7 @@ func New(
 	// Instantiate the ISS ordering protocol with default configuration.
 	// We use the ISS' default module configuration (the expected IDs of modules it interacts with)
 	// also to configure other modules of the system.
+	leaderPolicy := issutil.NewBlackListLeaderPolicy(maputil.GetSortedKeys(params.Iss.InitialMembership), issutil.StrongQuorum(len(params.Iss.InitialMembership)))
 	issModuleConfig := iss.DefaultModuleConfig()
 	issProtocol, err := iss.New(
 		ownID,
@@ -139,6 +142,7 @@ func New(
 		hashImpl,
 		cryptoImpl,
 		logging.Decorate(logger, "ISS: "),
+		leaderPolicy,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating ISS protocol module")
