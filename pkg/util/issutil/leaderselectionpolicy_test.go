@@ -80,9 +80,9 @@ func TestBlacklistLeaderPolicy_Conversion(t *testing.T) {
 
 	policy := &BlacklistLeaderPolicy{
 		Membership: map[types.NodeID]struct{}{
-			"node1": struct{}{},
-			"node2": struct{}{},
-			"node3": struct{}{},
+			"node1": {},
+			"node2": {},
+			"node3": {},
 		},
 		Suspected: map[types.NodeID]types.EpochNr{
 			"node1": 1,
@@ -133,9 +133,9 @@ func TestBlacklistLeaderPolicy_EmptySuspected(t *testing.T) {
 	}
 	policy := &BlacklistLeaderPolicy{
 		Membership: map[types.NodeID]struct{}{
-			"node1": struct{}{},
-			"node2": struct{}{},
-			"node3": struct{}{},
+			"node1": {},
+			"node2": {},
+			"node3": {},
 		},
 		Suspected:      map[types.NodeID]types.EpochNr{},
 		minLeaders:     2,

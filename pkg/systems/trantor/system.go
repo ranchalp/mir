@@ -2,6 +2,7 @@ package trantor
 
 import (
 	"crypto"
+
 	"github.com/filecoin-project/mir/pkg/util/issutil"
 	"github.com/filecoin-project/mir/pkg/util/maputil"
 

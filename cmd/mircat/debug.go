@@ -6,10 +6,11 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
-	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
