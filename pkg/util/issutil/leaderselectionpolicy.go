@@ -7,8 +7,17 @@ SPDX-License-Identifier: Apache-2.0
 package issutil
 
 import (
-	t "github.com/filecoin-project/mir/pkg/types"
+	"fmt"
 	"sort"
+
+	t "github.com/filecoin-project/mir/pkg/types"
+)
+
+type LeaderPolicyType uint64
+
+const (
+	Simple LeaderPolicyType = iota
+	Blacklist
 )
 
 // A LeaderSelectionPolicy implements the algorithm for selecting a set of leaders in each ISS epoch.
@@ -30,7 +39,23 @@ type LeaderSelectionPolicy interface {
 	// TODO: Use the whole configuration, not just the node IDs.
 	Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy
 
-	// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
+	//// TODO: Define, implement, and use state serialization and restoration for leader selection policies.
+	//Pb() commonpb.LeaderSelectionPolicy
+	Bytes() []byte
+}
+
+func LeaderPolicyFromBytes(bytes []byte) (LeaderSelectionPolicy, error) {
+	leaderPolicyType := t.Uint64FromBytes(bytes[0:8])
+
+	switch LeaderPolicyType(leaderPolicyType) {
+	case Simple:
+		return SimpleLeaderPolicyFromBytes(bytes[8:]), nil
+	case Blacklist:
+		return BlacklistLeaderPolicyFromBytes(bytes[8:])
+	default:
+		return nil, fmt.Errorf("invalid LeaderSelectionPolicy type: %v", leaderPolicyType)
+	}
+
 }
 
 // The SimpleLeaderPolicy is a trivial leader selection policy.
@@ -41,39 +66,50 @@ type SimpleLeaderPolicy struct {
 }
 
 // Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
-func (simple *SimpleLeaderPolicy) Leaders() []t.NodeID {
+func (simple SimpleLeaderPolicy) Leaders() []t.NodeID {
 	// All nodes are always leaders.
 	return simple.Membership
 }
 
 // Suspect does nothing for the SimpleLeaderPolicy.
-func (simple *SimpleLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (simple SimpleLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 	// Do nothing.
 }
 
 // Reconfigure informs the leader selection policy about a change in the membership.
-func (simple *SimpleLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
+func (simple SimpleLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
 	newPolicy := SimpleLeaderPolicy{Membership: make([]t.NodeID, len(nodeIDs))}
 	copy(newPolicy.Membership, nodeIDs)
 	return &newPolicy
 }
 
-type keyVal struct {
+func (simple *SimpleLeaderPolicy) Bytes() []byte {
+	membershipBytes := t.NodeIDSliceBytes(simple.Membership)
+	out := make([]byte, 0, len(membershipBytes)+8)
+	out = append(out, t.Uint64ToBytes(uint64(Simple))...)
+	return append(out, membershipBytes...)
 }
-type BlackListLeaderPolicy struct {
-	Membership     map[t.NodeID]bool // this bool is not to check membership but if it was ever suspected
+
+func SimpleLeaderPolicyFromBytes(bytes []byte) *SimpleLeaderPolicy {
+	return &SimpleLeaderPolicy{
+		t.NodeIDSliceFromBytes(bytes),
+	}
+}
+
+type BlacklistLeaderPolicy struct {
+	Membership     map[t.NodeID]struct{}
 	Suspected      map[t.NodeID]t.EpochNr
 	minLeaders     int
 	currentLeaders []t.NodeID
 	updated        bool
 }
 
-func NewBlackListLeaderPolicy(members []t.NodeID, minLeaders int) *BlackListLeaderPolicy {
-	membership := make(map[t.NodeID]bool, len(members))
+func NewBlackListLeaderPolicy(members []t.NodeID, minLeaders int) *BlacklistLeaderPolicy {
+	membership := make(map[t.NodeID]struct{}, len(members))
 	for _, node := range members {
-		membership[node] = false // no one is suspected at first
+		membership[node] = struct{}{}
 	}
-	return &BlackListLeaderPolicy{
+	return &BlacklistLeaderPolicy{
 		membership,
 		make(map[t.NodeID]t.EpochNr, len(members)),
 		minLeaders,
@@ -83,7 +119,7 @@ func NewBlackListLeaderPolicy(members []t.NodeID, minLeaders int) *BlackListLead
 }
 
 // Leaders always returns the whole membership for the SimpleLeaderPolicy. All nodes are always leaders.
-func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
+func (l *BlacklistLeaderPolicy) Leaders() []t.NodeID {
 	// All nodes are always leaders.
 	if l.updated { //no need to recalculate, no changes since last time
 		return l.currentLeaders
@@ -94,7 +130,7 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 	}()
 
 	curLeaders := make([]t.NodeID, 0, len(l.Membership))
-	for nodeID, _ := range l.Membership {
+	for nodeID := range l.Membership {
 		curLeaders = append(curLeaders, nodeID)
 	}
 
@@ -131,22 +167,21 @@ func (l *BlackListLeaderPolicy) Leaders() []t.NodeID {
 
 // Suspect adds a new suspect to the list of suspects, or updates its epoch where it was suspected to the given epoch
 // if this one is more recent than the one it already has
-func (l *BlackListLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
+func (l *BlacklistLeaderPolicy) Suspect(e t.EpochNr, node t.NodeID) {
 	if _, ok := l.Membership[node]; !ok { //node is a not a member
 		//TODO error but cannot be passed through
 		return
 	}
 
 	if epochNr, ok := l.Suspected[node]; !ok || epochNr < e {
-		l.Membership[node] = true //mark suspected
-		l.updated = false         // mark that next call to Leaders() needs to recalculate the leaders
-		l.Suspected[node] = e     // update with latest epoch that node was suspected
+		l.updated = false     // mark that next call to Leaders() needs to recalculate the leaders
+		l.Suspected[node] = e // update with latest epoch that node was suspected
 	}
 }
 
 // Reconfigure informs the leader selection policy about a change in the membership.
-func (l *BlackListLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
-	membership := make(map[t.NodeID]bool, len(nodeIDs))
+func (l *BlacklistLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionPolicy {
+	membership := make(map[t.NodeID]struct{}, len(nodeIDs))
 	suspected := make(map[t.NodeID]t.EpochNr, len(nodeIDs))
 	for _, nodeID := range nodeIDs {
 		if sus, ok := l.Membership[nodeID]; ok {
@@ -155,17 +190,130 @@ func (l *BlackListLeaderPolicy) Reconfigure(nodeIDs []t.NodeID) LeaderSelectionP
 				suspected[nodeID] = epoch
 			}
 		} else {
-			membership[nodeID] = false // new nodes are not suspected initially
+			membership[nodeID] = struct{}{}
 		}
 	}
 
-	newPolicy := BlackListLeaderPolicy{
+	newPolicy := BlacklistLeaderPolicy{
 		membership,
 		suspected,
 		l.minLeaders,
-		make([]t.NodeID, len(nodeIDs), len(nodeIDs)),
+		nil,
 		false,
 	}
 
 	return &newPolicy
+}
+
+func (l *BlacklistLeaderPolicy) Bytes() []byte {
+	var membersBytes, _ = l.membersBytes()
+	var suspectedBytes, _ = l.suspectedBytes()
+	out := make([]byte, 0, len(membersBytes)+8+8)
+	out = append(out, t.Uint64ToBytes(uint64(Blacklist))...)
+	out = append(out, membersBytes...)
+	out = append(out, suspectedBytes...)
+	return append(out, t.Uint64ToBytes(uint64(l.minLeaders))...)
+}
+
+func (l *BlacklistLeaderPolicy) membersBytes() ([]byte, error) {
+	return t.OrderedMapToBytes(l.Membership, t.NodeID(t.NodeIDSeparator).Bytes()[0], func(k t.NodeID, v struct{}) []byte {
+		return (k + t.NodeIDSeparator).Bytes()
+	})
+}
+
+func (l *BlacklistLeaderPolicy) suspectedBytes() ([]byte, error) {
+	return t.OrderedMapToBytes(l.Suspected, t.NodeID(t.NodeIDSeparator).Bytes()[0], func(k t.NodeID, v t.EpochNr) []byte {
+		out := (k + t.NodeIDSeparator).Bytes()
+		out = append(out, v.Bytes()...)
+		return out
+	})
+}
+
+func BlacklistLeaderPolicyFromBytes(data []byte) (*BlacklistLeaderPolicy, error) {
+	members, err, data := blacklistMembersFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	suspects, err, data := blacklistSuspectsFromBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	minLeaders := t.Uint64FromBytes(data)
+	return &BlacklistLeaderPolicy{
+		members,
+		suspects,
+		int(minLeaders),
+		nil,
+		false,
+	}, nil
+}
+
+func blacklistMembersFromBytes(b []byte) (map[t.NodeID]struct{}, error, []byte) {
+	separator := t.NodeID(t.NodeIDSeparator).Bytes()[0] // len(separator) = 1
+
+	return t.BytesToMap[t.NodeID, struct{}](b, separator, func(b []byte, m *map[t.NodeID]struct{}) ([]byte, error, bool) {
+		var i int
+		curByte := b[0]
+
+		for i = 1; curByte != separator && i < len(b)-1; i++ {
+			curByte = b[i]
+		}
+
+		var end bool
+		if i <= 1 && curByte == separator { // last separator
+			if len(b) >= 1 {
+				return b[i:], nil, true
+			} else {
+				return nil, nil, true
+			}
+		}
+
+		if curByte == separator { // otherwise last separator
+			(*m)[t.NodeID(string(b[0:i-1]))] = struct{}{}
+		} else if i >= len(b)-1 { //b[i] != separator
+			return nil, fmt.Errorf("unexpected end of []byte slice"), end
+		}
+
+		if len(b[i-1:]) > 1 {
+			return b[i:], nil, end
+		} else { //correct behaviour
+			return nil, nil, end
+		}
+	})
+}
+
+func blacklistSuspectsFromBytes(b []byte) (map[t.NodeID]t.EpochNr, error, []byte) {
+	separator := t.NodeID(t.NodeIDSeparator).Bytes()[0] // len(separator) = 1
+	return t.BytesToMap[t.NodeID, t.EpochNr](b, separator, func(b []byte, m *map[t.NodeID]t.EpochNr) ([]byte, error, bool) {
+		var i int
+		if len(b) == 0 {
+			return b, fmt.Errorf("0-byte slice"), false
+		}
+		curByte := b[0]
+
+		for i = 1; curByte != separator && i < len(b)-8; i++ {
+			curByte = b[i]
+		}
+
+		var end bool
+		if i <= 1 && curByte == separator { // last separator
+			if len(b) >= 1 {
+				return b[i:], nil, true
+			} else {
+				return nil, nil, true
+			}
+		}
+
+		if curByte == separator { // otherwise last separator
+			(*m)[t.NodeID(string(b[0:i-1]))] = t.EpochNr(t.Uint64FromBytes(b[i : i+8]))
+		} else { //b[i] != separator
+			return nil, fmt.Errorf("unexpected end of []byte slice"), end
+		}
+
+		if len(b[i:]) > 8 {
+			return b[i+8:], nil, end
+		} else { //correct behaviour
+			return nil, nil, end
+		}
+	})
 }

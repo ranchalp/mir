@@ -56,7 +56,7 @@ func TestBlackListLeaderPolicy(t *testing.T) {
 
 	// Reconfigure the policy with a new set of nodes and check that it is returned as the leader set
 	newNodes := []types.NodeID{"node4", "node5", "node6"}
-	policy, ok := policy.Reconfigure(newNodes).(*BlackListLeaderPolicy)
+	policy, ok := policy.Reconfigure(newNodes).(*BlacklistLeaderPolicy)
 	require.Equal(t, ok, true)
 	expected = newNodes
 	actual = policy.Leaders()
