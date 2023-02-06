@@ -10,5 +10,8 @@ func (*Message) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Message_Sig)(nil)),
 		reflect.TypeOf((*Message_RequestBatch)(nil)),
 		reflect.TypeOf((*Message_ProvideBatch)(nil)),
+		reflect.TypeOf((*Message_Cert)(nil)),
+		reflect.TypeOf((*Message_RequestCertRange)(nil)),
+		reflect.TypeOf((*Message_ProvideCertRange)(nil)),
 	}
 }

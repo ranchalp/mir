@@ -42,6 +42,8 @@ func Event_TypeFromPb(pb availabilitypb.Event_Type) Event_Type {
 		return &Event_RequestTransactions{RequestTransactions: RequestTransactionsFromPb(pb.RequestTransactions)}
 	case *availabilitypb.Event_ProvideTransactions:
 		return &Event_ProvideTransactions{ProvideTransactions: ProvideTransactionsFromPb(pb.ProvideTransactions)}
+	case *availabilitypb.Event_CertReceived:
+		return &Event_CertReceived{CertReceived: CertReceivedFromPb(pb.CertReceived)}
 	}
 	return nil
 }
@@ -152,6 +154,24 @@ func (w *Event_ProvideTransactions) Pb() availabilitypb.Event_Type {
 
 func (*Event_ProvideTransactions) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Event_ProvideTransactions]()}
+}
+
+type Event_CertReceived struct {
+	CertReceived *CertReceived
+}
+
+func (*Event_CertReceived) isEvent_Type() {}
+
+func (w *Event_CertReceived) Unwrap() *CertReceived {
+	return w.CertReceived
+}
+
+func (w *Event_CertReceived) Pb() availabilitypb.Event_Type {
+	return &availabilitypb.Event_CertReceived{CertReceived: (w.CertReceived).Pb()}
+}
+
+func (*Event_CertReceived) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.Event_CertReceived]()}
 }
 
 func EventFromPb(pb *availabilitypb.Event) *Event {
@@ -390,6 +410,35 @@ func (m *RequestCertOrigin) Pb() *availabilitypb.RequestCertOrigin {
 
 func (*RequestCertOrigin) MirReflect() mirreflect.Type {
 	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.RequestCertOrigin]()}
+}
+
+type CertReceived struct {
+	Cert        *Cert
+	Source      types2.NodeID
+	WorkerId    types2.ModuleID
+	WorkerCount int64
+}
+
+func CertReceivedFromPb(pb *availabilitypb.CertReceived) *CertReceived {
+	return &CertReceived{
+		Cert:        CertFromPb(pb.Cert),
+		Source:      (types2.NodeID)(pb.Source),
+		WorkerId:    (types2.ModuleID)(pb.WorkerId),
+		WorkerCount: pb.WorkerCount,
+	}
+}
+
+func (m *CertReceived) Pb() *availabilitypb.CertReceived {
+	return &availabilitypb.CertReceived{
+		Cert:        (m.Cert).Pb(),
+		Source:      (string)(m.Source),
+		WorkerId:    (string)(m.WorkerId),
+		WorkerCount: m.WorkerCount,
+	}
+}
+
+func (*CertReceived) MirReflect() mirreflect.Type {
+	return mirreflect.TypeImpl{PbType_: reflectutil.TypeOf[*availabilitypb.CertReceived]()}
 }
 
 type RequestTransactionsOrigin struct {

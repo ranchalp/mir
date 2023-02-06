@@ -55,7 +55,7 @@ func TransactionIDsResponse(m dsl.Module, destModule types.ModuleID, txIds [][]u
 	dsl.EmitMirEvent(m, events.TransactionIDsResponse(destModule, txIds, origin))
 }
 
-func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds [][]uint8, context *C) {
+func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds []types.TxID, prevBatch types.BatchID, context *C) {
 	contextID := m.DslHandle().StoreContext(context)
 
 	origin := &types1.RequestBatchIDOrigin{
@@ -63,7 +63,7 @@ func RequestBatchID[C any](m dsl.Module, destModule types.ModuleID, txIds [][]ui
 		Type:   &types1.RequestBatchIDOrigin_Dsl{Dsl: dsl.MirOrigin(contextID)},
 	}
 
-	dsl.EmitMirEvent(m, events.RequestBatchID(destModule, txIds, origin))
+	dsl.EmitMirEvent(m, events.RequestBatchID(destModule, txIds, prevBatch, origin))
 }
 
 func BatchIDResponse(m dsl.Module, destModule types.ModuleID, batchId []uint8, origin *types1.RequestBatchIDOrigin) {

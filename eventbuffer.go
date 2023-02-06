@@ -32,7 +32,7 @@ func newEventBuffer(modules modules.Modules) eventBuffer {
 }
 
 // AddEvents adds events produced by modules to the eventBuffer buffer.
-// According to their DestModule fields, the events are distributed to the appropriate internal sub-buffers.
+// According to their DestModule fields, the events are distributed to the appropriate parts sub-buffers.
 // When AddEvents returns a non-nil error, any subset of the events may have been added.
 func (wi *eventBuffer) AddEvents(events *events.EventList) error {
 	// Note that this MUST be a pointer receiver.

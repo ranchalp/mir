@@ -37,6 +37,10 @@ func (w *Event_ProvideTransactions) Unwrap() *ProvideTransactions {
 	return w.ProvideTransactions
 }
 
+func (w *Event_CertReceived) Unwrap() *CertReceived {
+	return w.CertReceived
+}
+
 type RequestCertOrigin_Type = isRequestCertOrigin_Type
 
 type RequestCertOrigin_TypeWrapper[T any] interface {

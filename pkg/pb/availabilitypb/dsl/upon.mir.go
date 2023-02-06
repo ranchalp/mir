@@ -5,6 +5,7 @@ import (
 	types "github.com/filecoin-project/mir/pkg/pb/availabilitypb/types"
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -86,5 +87,11 @@ func UponProvideTransactions[C any](m dsl.Module, handler func(txs []*types2.Req
 		}
 
 		return handler(ev.Txs, context)
+	})
+}
+
+func UponCertReceived(m dsl.Module, handler func(cert *types.Cert, source types3.NodeID, workerId types3.ModuleID, workerCount int64) error) {
+	UponEvent[*types.Event_CertReceived](m, func(ev *types.CertReceived) error {
+		return handler(ev.Cert, ev.Source, ev.WorkerId, ev.WorkerCount)
 	})
 }

@@ -69,7 +69,7 @@ func NewModule(mc *ModuleConfig, epochNr t.EpochNr, clientProgress *clientprogre
 			// If this is a proper certificate, request transactions from the availability layer.
 			availabilitypbdsl.RequestTransactions(
 				m,
-				mc.Availability.Then(t.ModuleID(fmt.Sprintf("%v", epochNr))),
+				mc.AvailabilityProvider,
 				apbtypes.CertFromPb(cert.Cert),
 				&txRequestContext{queueItem: &item},
 			)

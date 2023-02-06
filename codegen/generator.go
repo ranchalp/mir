@@ -34,7 +34,7 @@ type Generator interface {
 
 // RunGenerator runs a generator on the exported struct types of the package corresponding to inputPkgPath.
 // The zero value of the provided GeneratorType is used. GeneratorType cannot be an interface, it must be exported
-// (i.e., the name of the type should start from a capital letter), and it cannot be in "main" or "internal" package.
+// (i.e., the name of the type should start from a capital letter), and it cannot be in "main" or "parts" package.
 func RunGenerator[GeneratorType Generator](inputPkgPath string) error {
 	genType := reflectutil.TypeOf[GeneratorType]()
 	if genType.Kind() == reflect.Interface {
@@ -51,8 +51,8 @@ func RunGenerator[GeneratorType Generator](inputPkgPath string) error {
 			generatorPkgPath, generatorName, astutil.ToExported(generatorName))
 	}
 
-	if slices.Contains(strings.Split(generatorPkgPath, "/"), "internal") {
-		return fmt.Errorf("generator %v.%v is in an 'internal' package", generatorPkgPath, generatorName)
+	if slices.Contains(strings.Split(generatorPkgPath, "/"), "parts") {
+		return fmt.Errorf("generator %v.%v is in an 'parts' package", generatorPkgPath, generatorName)
 	}
 
 	if generatorPkgPath == "main" {

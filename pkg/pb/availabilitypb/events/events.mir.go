@@ -102,3 +102,21 @@ func ProvideTransactions(destModule types.ModuleID, txs []*types3.Request, origi
 		},
 	}
 }
+
+func CertReceived(destModule types.ModuleID, cert *types1.Cert, source types.NodeID, workerId types.ModuleID, workerCount int64) *types2.Event {
+	return &types2.Event{
+		DestModule: destModule,
+		Type: &types2.Event_Availability{
+			Availability: &types1.Event{
+				Type: &types1.Event_CertReceived{
+					CertReceived: &types1.CertReceived{
+						Cert:        cert,
+						Source:      source,
+						WorkerId:    workerId,
+						WorkerCount: workerCount,
+					},
+				},
+			},
+		},
+	}
+}

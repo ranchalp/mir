@@ -22,9 +22,9 @@ func UponMessageReceived[W types.Message_TypeWrapper[M], M any](m dsl.Module, ha
 	})
 }
 
-func UponRequestSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64) error) {
+func UponRequestSigMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, prevBatch types1.BatchID, reqId uint64) error) {
 	UponMessageReceived[*types.Message_RequestSig](m, func(from types1.NodeID, msg *types.RequestSigMessage) error {
-		return handler(from, msg.Txs, msg.ReqId)
+		return handler(from, msg.Txs, msg.PrevBatch, msg.ReqId)
 	})
 }
 
@@ -43,5 +43,23 @@ func UponRequestBatchMessageReceived(m dsl.Module, handler func(from types1.Node
 func UponProvideBatchMessageReceived(m dsl.Module, handler func(from types1.NodeID, txs []*types3.Request, reqId uint64) error) {
 	UponMessageReceived[*types.Message_ProvideBatch](m, func(from types1.NodeID, msg *types.ProvideBatchMessage) error {
 		return handler(from, msg.Txs, msg.ReqId)
+	})
+}
+
+func UponCertMessageReceived(m dsl.Module, handler func(from types1.NodeID, msc *types.Cert) error) {
+	UponMessageReceived[*types.Message_Cert](m, func(from types1.NodeID, msg *types.CertMessage) error {
+		return handler(from, msg.Msc)
+	})
+}
+
+func UponRequestCertRangeMessageReceived(m dsl.Module, handler func(from types1.NodeID, batchIdFrom []uint8, batchIdTo []uint8) error) {
+	UponMessageReceived[*types.Message_RequestCertRange](m, func(from types1.NodeID, msg *types.RequestCertRangeMessage) error {
+		return handler(from, msg.BatchIdFrom, msg.BatchIdTo)
+	})
+}
+
+func UponProvideCertRangeMessageReceived(m dsl.Module, handler func(from types1.NodeID, certs []*types.Cert) error) {
+	UponMessageReceived[*types.Message_ProvideCertRange](m, func(from types1.NodeID, msg *types.ProvideCertRangeMessage) error {
+		return handler(from, msg.Certs)
 	})
 }

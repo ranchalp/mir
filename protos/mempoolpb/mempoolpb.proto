@@ -86,8 +86,9 @@ message TransactionIDsResponse {
 message RequestBatchID {
   option (mir.event) = true;
 
-  repeated bytes        tx_ids = 1;
-  RequestBatchIDOrigin origin = 2 [(mir.origin_request) = true];
+  bytes        tx_ids = 1 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.TxID"];
+  string prev_batch = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.BatchID"];
+  RequestBatchIDOrigin origin = 3 [(mir.origin_request) = true];
 }
 
 // BatchIDResponse is a response to a RequestBatchID event.

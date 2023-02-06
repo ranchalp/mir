@@ -55,7 +55,7 @@ func (fm *FactoryModule) ImplementsModule() {}
 
 func (fm *FactoryModule) ApplyEvents(evts *events.EventList) (*events.EventList, error) {
 	// TODO: Perform event processing in parallel (applyEvent will need to be made thread-safe).
-	//       The idea is to have one internal thread per submodule, distribute the events to them through channels,
+	//       The idea is to have one parts thread per submodule, distribute the events to them through channels,
 	//       and wait until all are processed.
 	return modules.ApplyEventsSequentially(evts, fm.applyEvent)
 }

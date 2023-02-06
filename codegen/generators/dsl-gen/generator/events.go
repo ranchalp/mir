@@ -39,7 +39,7 @@ func generateRecursivelyDslFunctionsForEmittingEvents(
 	jenFileBySourcePackagePath map[string]*jen.File,
 ) error {
 
-	// If this is an internal node in the hierarchy, recursively call the function for subtypes and return.
+	// If this is an parts node in the hierarchy, recursively call the function for subtypes and return.
 	if eventNode.IsEventClass() {
 		for _, child := range eventNode.Children() {
 			err := generateRecursivelyDslFunctionsForEmittingEvents(child, jenFileBySourcePackagePath)
@@ -167,7 +167,7 @@ func generateRecursivelyDslFunctionsForHandlingEvents(
 		jenFile.Line()
 	}
 
-	// Check if this is an internal node in the hierarchy.
+	// Check if this is an parts node in the hierarchy.
 	if eventNode.IsEventClass() {
 
 		// Generate function for handling the event class.

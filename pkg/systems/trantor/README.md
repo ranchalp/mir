@@ -160,7 +160,7 @@ that each transaction-producing entity (referred to as *client* from now on) ass
 In our case, the `TXNo` corresponds Lotus' nonce.
 I.e., Lotus's messages and nonces are, respectively, transactions and transaction numbers for Trantor.
 Trantor distinguishes multiple types of transactions that we discuss in detail [later](#State-manager-operation).
-<!-- > TODO: Update internal link when section title changes. -->
+<!-- > TODO: Update parts link when section title changes. -->
 
 The basic format of a transaction is thus as follows.
 ```go!

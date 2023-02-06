@@ -5,6 +5,7 @@ import (
 	types1 "github.com/filecoin-project/mir/pkg/pb/eventpb/types"
 	types "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	types2 "github.com/filecoin-project/mir/pkg/pb/requestpb/types"
+	types3 "github.com/filecoin-project/mir/pkg/types"
 )
 
 // Module-specific dsl functions for processing events.
@@ -89,9 +90,9 @@ func UponTransactionIDsResponse[C any](m dsl.Module, handler func(txIds [][]uint
 	})
 }
 
-func UponRequestBatchID(m dsl.Module, handler func(txIds [][]uint8, origin *types.RequestBatchIDOrigin) error) {
+func UponRequestBatchID(m dsl.Module, handler func(txIds []types3.TxID, prevBatch types3.BatchID, origin *types.RequestBatchIDOrigin) error) {
 	UponEvent[*types.Event_RequestBatchId](m, func(ev *types.RequestBatchID) error {
-		return handler(ev.TxIds, ev.Origin)
+		return handler(ev.TxIds, ev.PrevBatch, ev.Origin)
 	})
 }
 

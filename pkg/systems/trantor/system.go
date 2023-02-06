@@ -2,11 +2,12 @@ package trantor
 
 import (
 	"crypto"
-
+	"github.com/filecoin-project/mir/pkg/availability/asyncmultisigcollector/asyncmultisigcollectorprovider"
+	"github.com/filecoin-project/mir/pkg/availability/asyncmultisigcollector/asyncmultisigcollectorworker"
+	"github.com/filecoin-project/mir/pkg/util/maputil"
 	"github.com/pkg/errors"
 
 	"github.com/filecoin-project/mir/pkg/availability/batchdb/fakebatchdb"
-	"github.com/filecoin-project/mir/pkg/availability/multisigcollector"
 	"github.com/filecoin-project/mir/pkg/batchfetcher"
 	"github.com/filecoin-project/mir/pkg/checkpoint"
 	mircrypto "github.com/filecoin-project/mir/pkg/crypto"
@@ -167,9 +168,38 @@ func New(
 	)
 
 	// Instantiate the availability layer.
-	availability := multisigcollector.NewReconfigurableModule(
-		&multisigcollector.ModuleConfig{
-			Self:    issModuleConfig.Availability,
+	//availability := asyncmultisigcollectorworker.NewReconfigurableModule(
+	//	&asyncmultisigcollectorworker.ModuleConfig{
+	//		Self:    issModuleConfig.Availability,
+	//		Net:     issModuleConfig.Net,
+	//		Crypto:  "crypto",
+	//		Mempool: "mempool",
+	//		BatchDB: "batchdb",
+	//	},
+	//	ownID,
+	//	logger,
+	//)
+
+	availabilityProvider, err := asyncmultisigcollectorprovider.NewModule(
+		asyncmultisigcollectorprovider.DefaultModuleConfig(),
+		&asyncmultisigcollectorprovider.ModuleParams{
+			// TODO: Use InstanceUIDs properly.
+			//       (E.g., concatenate this with the instantiating protocol's InstanceUID when introduced.)
+			//InstanceUID: []byte(mscID),
+			AllNodes: maputil.GetSortedKeys(params.Iss.InitialMembership),
+			// TODO: Consider lowering this threshold or make it configurable
+			//       for the case where fault assumptions are stricter because of other modules.
+			F: (len(params.Iss.InitialMembership) - 1) / 2,
+		},
+		ownID,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating availability module")
+	}
+
+	availabilityWorker := asyncmultisigcollectorworker.NewReconfigurableModule(
+		&asyncmultisigcollectorworker.ModuleConfig{
+			Self:    issModuleConfig.AvailabilityWorker,
 			Net:     issModuleConfig.Net,
 			Crypto:  "crypto",
 			Mempool: "mempool",
@@ -190,18 +220,19 @@ func New(
 	// Let the ISS implementation complete the module set by adding default implementations of helper modules
 	// that it needs but that have not been specified explicitly.
 	modulesWithDefaults, err := iss.DefaultModules(map[t.ModuleID]modules.Module{
-		issModuleConfig.App:          batchFetcher,
-		issModuleConfig.Self:         issProtocol,
-		issModuleConfig.Net:          transport,
-		issModuleConfig.Availability: availability,
-		issModuleConfig.Checkpoint:   checkpointing,
-		issModuleConfig.Ordering:     ordering,
-		"batchdb":                    batchdb,
-		"mempool":                    mempool,
-		"app":                        NewAppModule(app, transport, issModuleConfig.Self),
-		"hasher":                     mircrypto.NewHasher(hashImpl),
-		"crypto":                     mircrypto.New(cryptoImpl),
-		"null":                       modules.NullPassive{},
+		issModuleConfig.App:                  batchFetcher,
+		issModuleConfig.Self:                 issProtocol,
+		issModuleConfig.Net:                  transport,
+		issModuleConfig.AvailabilityWorker:   availabilityWorker,
+		issModuleConfig.AvailabilityProvider: availabilityProvider,
+		issModuleConfig.Checkpoint:           checkpointing,
+		issModuleConfig.Ordering:             ordering,
+		"batchdb":                            batchdb,
+		"mempool":                            mempool,
+		"app":                                NewAppModule(app, transport, issModuleConfig.Self),
+		"hasher":                             mircrypto.NewHasher(hashImpl),
+		"crypto":                             mircrypto.New(cryptoImpl),
+		"null":                               modules.NullPassive{},
 	}, issModuleConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing the Mir modules")

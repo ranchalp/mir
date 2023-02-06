@@ -45,9 +45,6 @@ func IncludeBatchReconstruction(
 
 	// When receive a request for transactions, first check the local storage.
 	apbdsl.UponRequestTransactions(m, func(cert *apbtypes.Cert, origin *apbtypes.RequestTransactionsOrigin) error {
-		//TODO this switch might be removable with some refactoring
-		// NOTE: it is assumed that cert is valid.
-
 		mscCertWrapper, ok := cert.Type.(*apbtypes.Cert_Msc)
 		if !ok {
 			return fmt.Errorf("unexpected certificate type")

@@ -89,7 +89,7 @@ func generateDslFunctionsForHandlingNetMessagesRecursively(
 		return
 	}
 
-	// Check if this is an internal node in the hierarchy.
+	// Check if this is an parts node in the hierarchy.
 	if hierarchyNode.IsMsgClass() {
 
 		// Generate function for handling the message class.

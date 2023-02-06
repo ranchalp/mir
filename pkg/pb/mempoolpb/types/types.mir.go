@@ -363,21 +363,28 @@ func (*TransactionIDsResponse) MirReflect() mirreflect.Type {
 }
 
 type RequestBatchID struct {
-	TxIds  [][]uint8
-	Origin *RequestBatchIDOrigin
+	TxIds     []types2.TxID
+	PrevBatch types2.BatchID
+	Origin    *RequestBatchIDOrigin
 }
 
 func RequestBatchIDFromPb(pb *mempoolpb.RequestBatchID) *RequestBatchID {
 	return &RequestBatchID{
-		TxIds:  pb.TxIds,
-		Origin: RequestBatchIDOriginFromPb(pb.Origin),
+		TxIds: types1.ConvertSlice(pb.TxIds, func(t uint8) types2.TxID {
+			return (types2.TxID)(t)
+		}),
+		PrevBatch: (types2.BatchID)(pb.PrevBatch),
+		Origin:    RequestBatchIDOriginFromPb(pb.Origin),
 	}
 }
 
 func (m *RequestBatchID) Pb() *mempoolpb.RequestBatchID {
 	return &mempoolpb.RequestBatchID{
-		TxIds:  m.TxIds,
-		Origin: (m.Origin).Pb(),
+		TxIds: types1.ConvertSlice(m.TxIds, func(t types2.TxID) uint8 {
+			return (uint8)(t)
+		}),
+		PrevBatch: (string)(m.PrevBatch),
+		Origin:    (m.Origin).Pb(),
 	}
 }
 

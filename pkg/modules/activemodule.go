@@ -38,7 +38,7 @@ type ActiveModule interface {
 	//
 	// Note also that the Node does not guarantee to always read events from the channel returned by EventsOut.
 	// The node might decide at any moment to stop reading from eventsOut for an arbitrary amount of time
-	// (e.g. if the Node's internal event buffers become full and the Node needs to wait until they free up).
+	// (e.g. if the Node's parts event buffers become full and the Node needs to wait until they free up).
 	// Even then, calls to ApplyEvents must be non-blocking.
 	EventsOut() <-chan *events.EventList
 }

@@ -24,6 +24,9 @@ message Message {
     SigMessage          sig           = 2;
     RequestBatchMessage request_batch = 3;
     ProvideBatchMessage provide_batch = 4;
+    CertMessage         cert          = 5;
+    RequestCertRangeMessage request_cert_range = 6;
+    ProvideCertRangeMessage provide_cert_range = 7;
   }
 }
 
@@ -31,7 +34,8 @@ message RequestSigMessage {
   option (net.message) = true;
 
   repeated requestpb.Request txs    = 1;
-  uint64                     req_id = 2;
+  string  prev_batch           = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.BatchID"];
+  uint64                     req_id = 3;
 }
 
 message SigMessage {
@@ -55,6 +59,19 @@ message ProvideBatchMessage {
   uint64                     req_id  = 2;
 }
 
+message RequestCertRangeMessage {
+  option (net.message) = true;
+
+  bytes  batch_id_from = 1;
+  bytes  batch_id_to   = 2;
+}
+
+message ProvideCertRangeMessage {
+  option (net.message) = true;
+
+  repeated Cert certs = 1;
+}
+
 // TODO: implement pulling of missing txs.
 //message RequestMissingTxsMessage {
 //  uint64         req_id = 1;
@@ -71,11 +88,15 @@ message ProvideBatchMessage {
 // ============================================================
 message Cert {
   option (mir.event) = true;
-
   bytes           batch_id   = 1;
   // TODO: can be encoded as n bits
   repeated string signers    = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
   repeated bytes  signatures = 3;
+}
+
+message CertMessage {
+  option (net.message) = true;
+  Cert msc = 1;
 }
 
 // ============================================================
@@ -83,5 +104,9 @@ message Cert {
 // ============================================================
 
 message InstanceParams {
+  option (mir.struct) = true;
   commonpb.Membership membership = 1;
+  string   source = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  int64 worker_count = 3 ;
+  string prev_batch_id = 4 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.BatchID"];
 }

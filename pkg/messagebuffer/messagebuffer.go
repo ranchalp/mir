@@ -171,7 +171,7 @@ func (mb *MessageBuffer) Resize(newCapacity int) {
 	}
 }
 
-// remove removes the given element (holding one message) of the internal message list
+// remove removes the given element (holding one message) of the parts message list
 // and updates the current buffer size accordingly.
 func (mb *MessageBuffer) remove(e *list.Element) proto.Message {
 	msg := mb.messages.Remove(e).(proto.Message)

@@ -5,6 +5,8 @@ import (
 	mpdsl "github.com/filecoin-project/mir/pkg/mempool/dsl"
 	"github.com/filecoin-project/mir/pkg/mempool/simplemempool/internal/common"
 	mppb "github.com/filecoin-project/mir/pkg/pb/mempoolpb"
+	mppbdsl "github.com/filecoin-project/mir/pkg/pb/mempoolpb/dsl"
+	mppbtypes "github.com/filecoin-project/mir/pkg/pb/mempoolpb/types"
 	"github.com/filecoin-project/mir/pkg/pb/requestpb"
 	"github.com/filecoin-project/mir/pkg/serializing"
 	t "github.com/filecoin-project/mir/pkg/types"
@@ -36,11 +38,13 @@ func IncludeComputationOfTransactionAndBatchIDs(
 		return nil
 	})
 
-	mpdsl.UponRequestBatchID(m, func(txIDs []t.TxID, origin *mppb.RequestBatchIDOrigin) error {
+	mppbdsl.UponRequestBatchID(m, func(txIDs []t.TxID, prevBatch t.BatchID, origin *mppbtypes.RequestBatchIDOrigin) error {
 		data := make([][]byte, len(txIDs))
 		copy(data, txIDs)
-
-		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin})
+		if prevBatch != nil || len(prevBatch) == 0 { // no prev batch
+			data = append(data, prevBatch) //append prev batch to batchID
+		}
+		dsl.HashOneMessage(m, mc.Hasher, data, &computeHashForBatchIDContext{origin.Pb()})
 		return nil
 	})
 

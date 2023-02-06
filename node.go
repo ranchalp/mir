@@ -68,7 +68,7 @@ type Node struct {
 	workErrNotifier *workErrNotifier
 
 	// When true, importing events from ActiveModules is disabled.
-	// This value is set to true when the internal event buffer exceeds a certain threshold
+	// This value is set to true when the parts event buffer exceeds a certain threshold
 	// and reset to false when the buffer is drained under a certain threshold.
 	inputPaused bool
 
@@ -154,7 +154,7 @@ func (n *Node) Debug(ctx context.Context, eventsOut chan *events.EventList) erro
 		}
 	}
 
-	// Set up channel for outputting internal events
+	// Set up channel for outputting parts events
 	n.debugOut = eventsOut
 
 	// Start processing of events.
@@ -181,7 +181,7 @@ func (n *Node) InjectEvents(ctx context.Context, events *events.EventList) error
 // This makes sure that the WAL events end up first in all the modules' processing queues.
 // Then it adds an Init event to the work items, giving the modules the possibility
 // to perform additional initialization based on the state recovered from the WAL.
-// Run then launches the processing of incoming messages, and internal events.
+// Run then launches the processing of incoming messages, and parts events.
 // The node stops when the ctx is canceled.
 // The function call is blocking and only returns when the node stops.
 func (n *Node) Run(ctx context.Context) error {
@@ -240,7 +240,7 @@ func (n *Node) processWAL(ctx context.Context) error {
 
 }
 
-// Performs all internal work of the node,
+// Performs all parts work of the node,
 // which mostly consists of routing events between the node's modules.
 // Stops and returns when ctx is canceled.
 func (n *Node) process(ctx context.Context) error { //nolint:gocyclo

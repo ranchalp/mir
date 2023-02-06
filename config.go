@@ -25,13 +25,13 @@ type NodeConfig struct {
 	// MaxEventBatchSize is the maximum number of events that can be dispatched to a module in a single batch.
 	MaxEventBatchSize int
 
-	// PauseInputThreshold is the number of events in the node's internal event buffer that triggers the disabling
+	// PauseInputThreshold is the number of events in the node's parts event buffer that triggers the disabling
 	// of further external input (i.e. events emitted by active modules). Events emitted by passive modules are
 	// not affected. The processing of external events is resumed when the number of events in the buffer drops
 	// below the ResumeInputThreshold.
 	PauseInputThreshold int
 
-	// ResumeInputThreshold is the number of events in the node's internal event buffer that triggers the enabling
+	// ResumeInputThreshold is the number of events in the node's parts event buffer that triggers the enabling
 	// of external input (i.e. events emitted by active modules). Events emitted by passive modules are not affected.
 	// When the external input is disabled and the number of events in the buffer drops below ResumeInputThreshold,
 	// external input events can be added to the event buffer again.

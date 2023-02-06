@@ -29,6 +29,8 @@ message Event {
 
     RequestTransactions request_transactions = 5;
     ProvideTransactions provide_transactions = 6;
+
+    CertReceived cert_received = 7;
   }
 }
 
@@ -94,6 +96,15 @@ message RequestCertOrigin {
     contextstorepb.Origin context_store = 2;
     dslpb.Origin          dsl           = 3;
   }
+}
+
+message CertReceived {
+  option (mir.event) = true;
+
+  Cert cert = 1;
+  string source = 2 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.NodeID"];
+  string worker_id = 3 [(mir.type) = "github.com/filecoin-project/mir/pkg/types.ModuleID"];
+  int64 worker_count = 4;
 }
 
 message RequestTransactionsOrigin {

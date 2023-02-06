@@ -22,3 +22,15 @@ func (w *Message_RequestBatch) Unwrap() *RequestBatchMessage {
 func (w *Message_ProvideBatch) Unwrap() *ProvideBatchMessage {
 	return w.ProvideBatch
 }
+
+func (w *Message_Cert) Unwrap() *CertMessage {
+	return w.Cert
+}
+
+func (w *Message_RequestCertRange) Unwrap() *RequestCertRangeMessage {
+	return w.RequestCertRange
+}
+
+func (w *Message_ProvideCertRange) Unwrap() *ProvideCertRangeMessage {
+	return w.ProvideCertRange
+}

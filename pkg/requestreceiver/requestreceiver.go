@@ -109,7 +109,7 @@ func (rr *RequestReceiver) Listen(srv RequestReceiver_ListenServer) error {
 	return srv.SendAndClose(&ByeBye{})
 }
 
-// Start starts the RequestReceiver by initializing and starting the internal gRPC server,
+// Start starts the RequestReceiver by initializing and starting the parts gRPC server,
 // listening on the passed port.
 // Before ths method is called, no client connections are accepted.
 func (rr *RequestReceiver) Start(port int) error {

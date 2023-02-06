@@ -104,15 +104,16 @@ func TransactionIDsResponse(destModule types.ModuleID, txIds [][]uint8, origin *
 	}
 }
 
-func RequestBatchID(destModule types.ModuleID, txIds [][]uint8, origin *types1.RequestBatchIDOrigin) *types2.Event {
+func RequestBatchID(destModule types.ModuleID, txIds []types.TxID, prevBatch types.BatchID, origin *types1.RequestBatchIDOrigin) *types2.Event {
 	return &types2.Event{
 		DestModule: destModule,
 		Type: &types2.Event_Mempool{
 			Mempool: &types1.Event{
 				Type: &types1.Event_RequestBatchId{
 					RequestBatchId: &types1.RequestBatchID{
-						TxIds:  txIds,
-						Origin: origin,
+						TxIds:     txIds,
+						PrevBatch: prevBatch,
+						Origin:    origin,
 					},
 				},
 			},

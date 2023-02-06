@@ -189,7 +189,7 @@ func (gt *Transport) Listen(srv GrpcTransport_ListenServer) error {
 	return srv.SendAndClose(&ByeBye{})
 }
 
-// Start starts the networking module by initializing and starting the internal gRPC server,
+// Start starts the networking module by initializing and starting the parts gRPC server,
 // listening on the port determined by the membership and own ID.
 // Before ths method is called, no other GrpcTransports can connect to this one.
 func (gt *Transport) Start() error {

@@ -25,19 +25,19 @@ type dslModuleImpl struct {
 	eventCleanupContextIDs map[ContextID]struct{}
 }
 
-// Handle is used to manage internal state of the dsl module.
+// Handle is used to manage parts state of the dsl module.
 type Handle struct {
 	impl *dslModuleImpl
 }
 
-// ContextID is used to address the internal context store of the dsl module.
+// ContextID is used to address the parts context store of the dsl module.
 type ContextID = cs.ItemID
 
 // Module allows creating passive modules in a very natural declarative way.
 type Module interface {
 	modules.PassiveModule
 
-	// DslHandle is used to manage internal state of the dsl module.
+	// DslHandle is used to manage parts state of the dsl module.
 	DslHandle() Handle
 
 	// ModuleID returns the identifier of the module.
@@ -57,7 +57,7 @@ func NewModule(moduleID t.ModuleID) Module {
 	}
 }
 
-// DslHandle is used to manage internal state of the dsl module.
+// DslHandle is used to manage parts state of the dsl module.
 func (m *dslModuleImpl) DslHandle() Handle {
 	return Handle{m}
 }
@@ -119,7 +119,7 @@ func (h Handle) CleanupContext(id ContextID) {
 	h.impl.eventCleanupContextIDs[id] = struct{}{}
 }
 
-// RecoverAndRetainContext recovers the context with the given id and retains it in the internal context store so that
+// RecoverAndRetainContext recovers the context with the given id and retains it in the parts context store so that
 // it can be recovered again later. Only use this function when expecting to receive multiple events with the same
 // context. In case of a typical request-response semantic, use RecoverAndCleanupContext.
 func (h Handle) RecoverAndRetainContext(id cs.ItemID) any {

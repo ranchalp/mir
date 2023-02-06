@@ -1,6 +1,7 @@
 package orderers
 
 import (
+	"fmt"
 	"github.com/filecoin-project/mir/pkg/factorymodule"
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
 	"github.com/filecoin-project/mir/pkg/logging"
@@ -24,6 +25,8 @@ func Factory(mc *ModuleConfig, issParams *issconfig.ModuleParams, ownID t.NodeID
 				// Crate a copy of basic module config with an adapted ID for the submodule.
 				submc := *mc
 				submc.Self = submoduleID
+
+				fmt.Println("mscID:", submoduleID)
 
 				p := params.Type.(*factorymodulepb.GeneratorParams_PbftModule).PbftModule
 

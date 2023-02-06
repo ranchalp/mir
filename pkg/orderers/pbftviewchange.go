@@ -639,7 +639,7 @@ func reconstructPSetQSet(
 }
 
 // getPSetQSet computes the P set and Q set for the construction of a PBFT view change message.
-// Note that this representation of the PSet and QSet is internal to the protocol implementation
+// Note that this representation of the PSet and QSet is parts to the protocol implementation
 // and cannot be directly used in a view change message.
 // They must first be transformed to a serializable representation that adheres to the message format.
 func (orderer *Orderer) getPSetQSet() (pSet viewChangePSet, qSet viewChangeQSet) {

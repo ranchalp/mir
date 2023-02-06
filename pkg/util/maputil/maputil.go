@@ -24,6 +24,14 @@ func GetSortedKeys[K constraints.Ordered, V any](m map[K]V) []K {
 	return keys
 }
 
+func GetSortedKeysFunc[K comparable, V any](m map[K]V, f func(ki, kj K) bool) []K {
+	keys := GetKeys(m)
+	sort.Slice(keys, func(i, j int) bool {
+		return f(keys[i], keys[j])
+	})
+	return keys
+}
+
 // GetValuesOf returns a slice containing the values from map m corresponding to the provided keys, in the same order
 // as the keys.
 func GetValuesOf[K comparable, V any](m map[K]V, keys []K) []V {

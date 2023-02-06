@@ -12,6 +12,7 @@ func (*Event) ReflectTypeOptions() []reflect.Type {
 		reflect.TypeOf((*Event_CertVerified)(nil)),
 		reflect.TypeOf((*Event_RequestTransactions)(nil)),
 		reflect.TypeOf((*Event_ProvideTransactions)(nil)),
+		reflect.TypeOf((*Event_CertReceived)(nil)),
 	}
 }
 

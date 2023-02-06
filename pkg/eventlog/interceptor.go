@@ -2,7 +2,7 @@ package eventlog
 
 import "github.com/filecoin-project/mir/pkg/events"
 
-// Interceptor provides a way to gain insight into the internal operation of the node.
+// Interceptor provides a way to gain insight into the parts operation of the node.
 // Before being passed to the respective target modules, Events can be intercepted and logged
 // for later analysis or replaying.
 type Interceptor interface {

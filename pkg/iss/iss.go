@@ -447,7 +447,7 @@ func (iss *ISS) applyStableCheckpoint(stableCheckpoint *checkpoint.StableCheckpo
 			eventsOut.PushBackSlice([]*eventpb.Event{
 				events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(pruneIndex)),
 				factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(pruneIndex)),
-				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)),
+				factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(pruneIndex)), // TODO send message to provider to properly garbage collect
 				factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(pruneIndex)),
 			})
 			// TODO: Make EventList.PushBack accept a variable number of arguments and use it here.
@@ -612,7 +612,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 	eventsOut.PushBackSlice([]*eventpb.Event{
 		events.TimerGarbageCollect(iss.moduleConfig.Timer, t.RetentionIndex(chkp.Epoch())),
 		factoryevents.GarbageCollect(iss.moduleConfig.Checkpoint, t.RetentionIndex(chkp.Epoch())),
-		factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(chkp.Epoch())),
+		factoryevents.GarbageCollect(iss.moduleConfig.Availability, t.RetentionIndex(chkp.Epoch())), // TODO send message to provider to properly garbage collect
 		factoryevents.GarbageCollect(iss.moduleConfig.Ordering, t.RetentionIndex(chkp.Epoch())),
 	})
 
@@ -629,7 +629,7 @@ func (iss *ISS) applyStableCheckpointMessage(chkpPb *checkpointpb.StableCheckpoi
 func (iss *ISS) startEpoch(epochNr t.EpochNr) *events.EventList {
 	eventsOut := events.EmptyList()
 
-	// Initialize the internal data structures for the new epoch.
+	// Initialize the parts data structures for the new epoch.
 	nodeIDs := maputil.GetSortedKeys(iss.memberships[0])
 	epoch := newEpochInfo(epochNr, iss.newEpochSN, nodeIDs, iss.LeaderPolicy)
 	iss.epochs[epochNr] = &epoch
@@ -651,6 +651,8 @@ func (iss *ISS) startEpoch(epochNr t.EpochNr) *events.EventList {
 // initAvailability emits an event for the availability module to create a new submodule
 // corresponding to the current ISS epoch.
 func (iss *ISS) initAvailability() *eventpb.Event {
+
+	//TODO send message to provider instead. ISS is not handling this anymore
 	return factoryevents.NewModule(
 		iss.moduleConfig.Availability,
 		iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
@@ -687,7 +689,8 @@ func (iss *ISS) initOrderers() *events.EventList {
 			t.RetentionIndex(iss.epoch.Nr()),
 			orderers.InstanceParams(
 				seg,
-				iss.moduleConfig.Availability.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+				//iss.moduleConfig.AvailabilityProvider.Then(t.ModuleID(fmt.Sprintf("%v", iss.epoch.Nr()))),
+				iss.moduleConfig.AvailabilityProvider,
 				iss.epoch.Nr(),
 			),
 		))
@@ -715,7 +718,7 @@ func (iss *ISS) epochFinished() bool {
 // processCommitted delivers entries from the commitLog in order of their sequence numbers.
 // Whenever a new entry is inserted in the commitLog, this function must be called
 // to create Deliver events for all the certificates that can be delivered to the application.
-// processCommitted also triggers other internal Events like epoch transitions and state checkpointing.
+// processCommitted also triggers other parts Events like epoch transitions and state checkpointing.
 func (iss *ISS) processCommitted() (*events.EventList, error) {
 	eventsOut := events.EmptyList()
 

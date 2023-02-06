@@ -87,7 +87,7 @@ func (c *DefaultImpl) RegisterNodeKey(pubKey []byte, nodeID t.NodeID) error {
 	return nil
 }
 
-// DeleteNodeKey removes the public key associated with nodeID from the internal state.
+// DeleteNodeKey removes the public key associated with nodeID from the parts state.
 // Any subsequent call to Verify(..., nodeID) will fail.
 func (c *DefaultImpl) DeleteNodeKey(nodeID t.NodeID) {
 	delete(c.nodeKeys, nodeID)
