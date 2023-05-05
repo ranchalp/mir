@@ -3,6 +3,8 @@ package trantor
 import (
 	"crypto"
 
+	ordererscommon "github.com/filecoin-project/mir/pkg/orderers/common"
+
 	"github.com/filecoin-project/mir/pkg/trantor/appmodule"
 
 	"github.com/filecoin-project/mir/pkg/checkpoint/common"
@@ -130,7 +132,7 @@ func New(
 	checkpointing := checkpoint.Factory(common.DefaultModuleConfig(), ownID, logging.Decorate(logger, "CHKP: "))
 
 	// PBFT module with instances of the pbft protocol as segments to be called by ISS.
-	ordering := orderers.Factory(orderers.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))
+	ordering := orderers.Factory(ordererscommon.DefaultModuleConfig(), params.Iss, ownID, hashImpl, cryptoImpl, logging.Decorate(logger, "PBFT: "))
 
 	// Use a simple mempool for incoming transactions.
 	mempool := simplemempool.NewModule(
