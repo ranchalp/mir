@@ -1,6 +1,7 @@
 package common
 
 import (
+	pbftpbtypes "github.com/filecoin-project/mir/pkg/pb/pbftpb/types"
 	es "github.com/go-errors/errors"
 
 	issconfig "github.com/filecoin-project/mir/pkg/iss/config"
@@ -22,7 +23,10 @@ func NewPermissiveValidityChecker() *PermissiveValidityChecker {
 	return &PermissiveValidityChecker{}
 }
 
-func (pvc *PermissiveValidityChecker) Check(_ []byte) error {
+func (pvc *PermissiveValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
+	if preprepare.Data == nil && !preprepare.Aborted {
+		return es.Errorf("invalid preprepare: data is nil")
+	}
 	return nil
 }
 
@@ -55,10 +59,10 @@ func NewCheckpointValidityChecker(
 	}
 }
 
-func (cvc *CheckpointValidityChecker) Check(data []byte) error {
+func (cvc *CheckpointValidityChecker) Check(preprepare *pbftpbtypes.Preprepare) error {
 	var chkp checkpoint.StableCheckpoint
 
-	if err := chkp.Deserialize(data); err != nil {
+	if err := chkp.Deserialize(preprepare.Data); err != nil {
 		return es.Errorf("could not deserialize checkpoint: %w", err)
 	}
 
@@ -75,5 +79,5 @@ func (cvc *CheckpointValidityChecker) Check(data []byte) error {
 type ValidityChecker interface {
 
 	// Check returns nil if the provided proposal data is valid, a non-nil error otherwise.
-	Check(data []byte) error
+	Check(preprepare *pbftpbtypes.Preprepare) error
 }

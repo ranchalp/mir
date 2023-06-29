@@ -3,6 +3,8 @@ package testing
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/mir/pkg/eventmangler"
+	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -65,12 +67,15 @@ type TestConfig struct {
 	NumFakeTXs          int
 	NumNetTXs           int
 	Duration            time.Duration
+	ErrorExpected       *es.Error // whether to expect an error from the test
 	Directory           string
 	SlowProposeReplicas map[int]bool
+	CrashedReplicas     map[int]bool
+	CheckFunc           func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig)
 	Logger              logging.Logger
 }
 
-func testIntegrationWithISS(t *testing.T) {
+func testIntegrationWithISS(tt *testing.T) {
 	tests := []struct {
 		Desc   string // test description
 		Config *TestConfig
@@ -177,6 +182,44 @@ func testIntegrationWithISS(t *testing.T) {
 				Duration:            20 * time.Second,
 				SlowProposeReplicas: map[int]bool{0: true},
 			}},
+		13: {"Submit 100 fake transactions with 4 nodes in simulation, two of them slow and holding the supermajority of stake",
+			&TestConfig{
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
+					idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
+					return types.VoteWeight(math.Pow(2, idfloat)) // ensures last 2 nodes weight is greater than twice the sum of the others'
+				}),
+				NumClients:      0,
+				Transport:       "libp2p",
+				NumFakeTXs:      100,
+				Duration:        20 * time.Second,
+				ErrorExpected:   es.Errorf("no transactions were delivered"),
+				CrashedReplicas: map[int]bool{2: true, 3: true},
+			}},
+		14: {"Submit 100 fake transactions with 4 nodes in simulation, two of them slow and holding the minority of stake",
+			&TestConfig{
+				NodeIDsWeight: deploytest.NewNodeIDsWeights(4, func(id t.NodeID) types.VoteWeight {
+					//idfloat, _ := strconv.ParseFloat(id.Pb(), 64)
+					//return types.VoteWeight(math.Pow(2, 4-idfloat)) // ensures first 2 nodes weight is greater than twice the sum of the others'
+					return types.VoteWeight(1)
+				}),
+				NumClients:      0,
+				Transport:       "libp2p",
+				NumFakeTXs:      100,
+				Duration:        180 * time.Second,
+				ErrorExpected:   es.Errorf("no transactions were delivered"),
+				CrashedReplicas: map[int]bool{2: true, 3: true},
+				CheckFunc: func(tb testing.TB, deployment *deploytest.Deployment, conf *TestConfig) {
+					require.Error(tb, conf.ErrorExpected)
+					for _, replica := range []string{"0", "1"} {
+						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						require.Equal(tb, conf.NumNetTXs+conf.NumFakeTXs, int(app.TransactionsProcessed))
+					}
+					for _, replica := range []string{"2", "3"} {
+						app := deployment.TestConfig.FakeApps[t.NodeID(replica)]
+						require.Equal(tb, 0, int(app.TransactionsProcessed))
+					}
+				},
+			}},
 	}
 
 	for i, test := range tests {
@@ -184,9 +227,9 @@ func testIntegrationWithISS(t *testing.T) {
 
 		// Create a directory for the deployment-generated files and set the test directory name.
 		// The directory will be automatically removed when the outer test function exits.
-		createDeploymentDir(t, test.Config)
+		createDeploymentDir(tt, test.Config)
 
-		t.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
+		tt.Run(fmt.Sprintf("%03d", i), func(t *testing.T) {
 			simMode := (test.Config.Transport == "sim")
 			if testing.Short() && !simMode {
 				t.SkipNow()
@@ -299,6 +342,16 @@ func runIntegrationWithISSConfig(tb testing.TB, conf *TestConfig) (heapObjects i
 	}
 
 	// Check event logs
+	if conf.CheckFunc != nil {
+		conf.CheckFunc(tb, deployment, conf)
+		return heapObjects, heapAlloc
+	}
+
+	if conf.ErrorExpected != nil {
+		require.Error(tb, conf.ErrorExpected)
+		return heapObjects, heapAlloc
+	}
+
 	require.NoError(tb, checkEventTraces(deployment.EventLogFiles(), conf.NumNetTXs+conf.NumFakeTXs))
 
 	// Check if all transactions were delivered.
@@ -382,6 +435,7 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 			// Increase MaxProposeDelay such that it is likely to trigger view change by the SN timeout.
 			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
 			// in the worst case, it will trigger view change by the segment timeout.
+			print("Slowing down node", nodeID)
 			issConfig.MaxProposeDelay = issConfig.PBFTViewChangeSNTimeout
 		}
 
@@ -416,6 +470,16 @@ func newDeployment(conf *TestConfig) (*deploytest.Deployment, error) {
 		)
 		if err != nil {
 			return nil, err
+		}
+
+		if conf.CrashedReplicas[i] {
+			// Set MaxProposeDelay to 0 such that it is likely to trigger view change by the SN timeout.
+			// Since a sensible value for the segment timeout needs to be stricter than the SN timeout,
+			// in the worst case, it will trigger view change by the segment timeout.
+			print("Slowing down node to simulate crash ", nodeID, "\n")
+			trantor.PerturbMessages(&eventmangler.ModuleParams{
+				DropRate: 1,
+			}, trantor.DefaultModuleConfig().Net, system)
 		}
 
 		nodeModules[nodeID] = system.Modules()

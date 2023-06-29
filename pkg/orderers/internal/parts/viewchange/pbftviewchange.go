@@ -462,18 +462,18 @@ func applyVerifiedViewChange(
 	from t.NodeID,
 	logger logging.Logger,
 ) {
-	logger.Log(logging.LevelDebug, "Received ViewChange.", "sender", from)
+	//logger.Log(logging.LevelDebug, "Received ViewChange.", "sender", from)
 
 	// Convenience variables.
 	vc := svc.ViewChange
 
 	// Ignore message if it is from an old view.
 	if vc.View < state.View {
-		logger.Log(logging.LevelDebug, "Ignoring ViewChange from old view.",
+		/*logger.Log(logging.LevelDebug, "Ignoring ViewChange from old view.",
 			"sender", from,
 			"vcView", vc.View,
 			"localView", state.View,
-		)
+		)*/
 		return
 	}
 
@@ -493,14 +493,14 @@ func applyVerifiedViewChange(
 
 	// If enough ViewChange messages had been received already, ignore the message just received.
 	if vcstate.EnoughViewChanges() {
-		logger.Log(logging.LevelDebug, "Ignoring ViewChange message, have enough already", "from", from)
+		//logger.Log(logging.LevelDebug, "Ignoring ViewChange message, have enough already", "from", from)
 		return
 	}
 
 	// Update the view change state by the received ViewChange message.
 	vcstate.AddSignedViewChange(svc, from, logger)
 
-	logger.Log(logging.LevelDebug, "Added ViewChange.", "numViewChanges", len(vcstate.SignedViewChanges))
+	logger.Log(logging.LevelDebug, "Added ViewChange.", "numViewChanges", maputil.GetKeys(vcstate.SignedViewChanges))
 
 	// If enough ViewChange messages have been received
 	if vcstate.EnoughViewChanges() {
